@@ -6,7 +6,6 @@ from datetime import datetime
 import urllib.parse as url_parser
 import _thread
 # Code & Help auf Englisch, Doc-Comments, keine Wiederholungen & Coding conventions
-# \/ kodierung in url, url absolut setzen
 HELP = """    --: beendet Eingabe. Argumente nach --:
         c: führt Programm dann aus
         s <path>: speichert code unter path
@@ -321,7 +320,7 @@ def process_request(conn, client, content):
         return
     else:
         print("--Received correct request at:", datetime.now(), "\n\tIP-adr.:", client[0], "\n\tPort:", str(client[1]))
-    header_start = data.decode("utf-8").split("\r\n")[0]
+    header_start = data.decode("utf-8").split("\r\n")[0].replace(";;", "\\")
     header_infos = url_parser.unquote(header_start).split(" ")
 
     if header_infos[1] == "/favicon.ico":

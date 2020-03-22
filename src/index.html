@@ -46,7 +46,7 @@
 		</div>
 		<div style="background-color: #aabbff; border-radius: 5px; height: 230px; padding-top: 20px; display: block">
 			<textarea style="margin: 10px 5%; width: 90%; height: 150px;" id="inp"><% REQUEST %></textarea>
-			<button onclick="window.location = document.getElementById('inp').value.split('\n').join(' ');">GO</button>
+			<button onclick="window.location.pathname = document.getElementById('inp').value.split('\n').join(' ').split('\\').join(';;');">GO</button>
 		</div>
 		<div class="<% RESULT %>">
 			<div style="margin: 0 5%; padding: 20px 0 50px 0;">
