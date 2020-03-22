@@ -6,6 +6,7 @@ from datetime import datetime
 import urllib.parse as url_parser
 import _thread
 # Code & Help auf Englisch, Doc-Comments, keine Wiederholungen & Coding conventions
+# \/ kodierung in url, url absolut setzen
 HELP = """    --: beendet Eingabe. Argumente nach --:
         c: führt Programm dann aus
         s <path>: speichert code unter path
@@ -312,29 +313,28 @@ def to_py(commands):
     return append_top + py_code
 
 
-def process_request(conn, client, content, log):
+def process_request(conn, client, content):
     # receive and check data
     data = conn.recv(4096)
     if not data:
-        log.write("--Received wrong request at:", datetime.now(), "\n\tIP-adr.:", client[0], "\n\tPort:", str(client[1]), "\n")
+        print("--Received wrong request at:", datetime.now(), "\n\tIP-adr.:", client[0], "\n\tPort:", str(client[1]))
         return
     else:
-        log.write("--Received correct request at:", datetime.now(), "\n\tIP-adr.:", client[0], "\n\tPort:", str(client[1]), "\n")
+        print("--Received correct request at:", datetime.now(), "\n\tIP-adr.:", client[0], "\n\tPort:", str(client[1]))
     header_start = data.decode("utf-8").split("\r\n")[0]
     header_infos = url_parser.unquote(header_start).split(" ")
 
     if header_infos[1] == "/favicon.ico":
-        log.write("\t--Icon request (ignored)--\n")
+        print("\t--Icon request (ignored)--")
         conn.send("0".encode())
         conn.close()
         return
     else:
-        log.write("\tInfo: " + header_infos[0], header_infos[-1], "\n")
+        print("\tInfo: " + header_infos[0], header_infos[-1])
 
     header_infos[1] = header_infos[1][1:]  # remove / at the beginning of request
-    # change stdout
-    old = sys.stdout
-    sys.stdout = io.StringIO()
+    # redirect print calls
+    prog_log = io.StringIO()
     try:
         content = content.replace("<% REQUEST %>", "\n".join(header_infos[1:-1]))
         if len(header_infos) == 3 and header_infos[1] == "":
@@ -343,20 +343,20 @@ def process_request(conn, client, content, log):
             # create code
             py_code = to_py(header_infos[1:-1])
             # execute code
-            exec(py_code)
+            exec(py_code, {'print': lambda s: prog_log.write(str(s) + "\n")})
             content = content.replace("<% RESULT %>", "succeeded")
     except Exception as e:
-        print(e)  # prints to redirected stdout
+        prog_log.write(str(e) + "\n")  # prints to redirected stdout
         content = content.replace("<% RESULT %>", "failed")
-    result = sys.stdout.getvalue()
-    sys.stdout = old
+    result = prog_log.getvalue()
+    prog_log.close()
     conn.send(content.replace("<% OUTPUT %>", result.replace("\n", "<br>")).encode())
     conn.close()
 
 
-def run_server(server, content, stdout):
+def run_server(server, content):
     while True:
-        _thread.start_new_thread(process_request, (*server.accept(), content, stdout))
+        _thread.start_new_thread(process_request, (*server.accept(), content))
 
 
 def get_ip_address():
@@ -409,7 +409,7 @@ elif len(sys.argv) > 1:
                 with open(os.path.dirname(os.path.abspath(sys.argv[0]))+"/src/help.txt", encoding='utf-8-sig') as help_file:
                     info = help_file.read().replace("\n", "<br>").replace("\t", "&ensp;" * 2).replace(" ", "&ensp;")
 
-                _thread.start_new_thread(run_server, (server, content.replace("<% HELP %>", info), sys.stdout))
+                _thread.start_new_thread(run_server, (server, content.replace("<% HELP %>", info)))
                 print("Server started:\n\thostname:", socket.gethostname(), "\n\tip:", ip_adr, "\n\ttime:", datetime.now())
                 input("Press Enter to stop.\n")
             except FileNotFoundError:

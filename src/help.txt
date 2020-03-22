@@ -63,14 +63,14 @@
     Variable ohne Anweisung werden ausgegeben (default: a, falls nichts anderes Ausgegeben wurde)
         b -> bei Programm ende wird b ausgegeben
 
-    Bsp: 
-	10. Fibonaccizahl:
+    Bsp:
+    10. Fibonaccizahl:
         1 1 for8 cb b+a ab s b
-	PI Annäherung:
-		1.0 1.0 v1 for1,100000 b+2 ifti%2=1 a-(1/b) s ift a+(1/b) s s a*4 a c
-	Prime twins between 1 and 1000:
-	    zp(x+px*2) for3,1000 xi iftz ai+2 ri+","+a s s
-	Hello World:
-	    defspace _return(str(chr(32))) s r"Hello"+space()+"World"
-	  oder:
-	    r"Hello"+str(chr(32))+"World"
+    PI Annäherung:
+        1.0 1.0 v1 for1,100000 b+2 ifti%2=1 a-(1/b) s ift a+(1/b) s s a*4 a c
+    Prime twins between 1 and 1000:
+        zp(x+px*2) for3,1000 xi iftz ai+2 ri+","+a s s
+    Hello World:
+        defspace _return(str(chr(32))) s r"Hello"+space()+"World"
+      oder:
+        r"Hello"+str(chr(32))+"World"
