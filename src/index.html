@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>
+			Short Python
+		</title>
+		<style>
+			.succeeded {
+				background-color: #aaffbb;
+			}
+			.failed {
+				background-color: #ff8899;
+			}
+			.default {
+				background-color: #aaaaaa;
+			}
+			div {
+				border-radius: 5px;
+				margin: 3%;
+			}
+			button {
+				margin: 0px 5%;
+				width: 15%;
+				float: right;
+				height: 30px;
+			}
+		</style>
+		<script>
+			function help_click() {
+				if (document.getElementById("help_info").innerHTML == "Show help") {
+					document.getElementById("help").style.display = "block";
+					document.getElementById("help_info").innerHTML = "Hide help";
+				} else {
+					document.getElementById("help").style.display = "none";
+					document.getElementById("help_info").innerHTML = "Show help";
+				}
+			}
+		</script>
+	<head/>
+	<body>
+		<div style="padding-bottom: 20px;">
+			<button id="help_info" onclick="help_click();" style="display: block;">Show help</button>
+			<p id="help" style="display: none; margin: 0 5%;padding-top: 10px;user-select: none;">
+				<% HELP %>
+			</p>
+		</div>
+		<div style="background-color: #aabbff; border-radius: 5px; height: 230px; padding-top: 20px; display: block">
+			<textarea style="margin: 10px 5%; width: 90%; height: 150px;" id="inp"><% REQUEST %></textarea>
+			<button onclick="window.location = document.getElementById('inp').value.split('\n').join(' ');">GO</button>
+		</div>
+		<div class="<% RESULT %>">
+			<div style="margin: 0 5%; padding: 20px 0 50px 0;">
+				<h1 style="font-size: 36px;">Result (request <% RESULT %>):</h1>
+				<p>
+					<% OUTPUT %>
+				</p>
+			</div>
+		</div>
+	<body/>
+<html/>
