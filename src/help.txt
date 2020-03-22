@@ -1,72 +1,72 @@
 ﻿
-    a-h: Variablen, werden automatisch deklariert und initialisiert
+    a-h: variables, are declared and initialized automatically
         a2 -> a=2
-        1 3 2 -> a=1, b=3, c=2 (sofern a,b,c nicht belegt)
-    i-k: Variablen in Loops
-    q: Quadratwurzel
+        1 3 2 -> a=1, b=3, c=2 (if a,b,c aren't used)
+            if a-h are used, h will be overwritten
+    i-k: Variables used in loops; they are set automatically; for variable in the fourth loop look at 'o'
+    q: squareroot
         q4 -> 2
-    w: Wurzel (default: 3)
+    w: root (default: 3)
         w27 -> 3
         w5,25 -> 5
-    l: log (default: e)
+    l: log (default-base: e)
         l2,8 -> 4
-        lv2 -> 1
-    m: negiert nachfolgende Zahl, Klammern nicht benötigt
+        lv2 -> 1   (v2 == e)
+    m: negates first following number, brackets can be used
     n: not
-    u: und
-    o: other, greift auf zweite Variable zu
-        in der 4. for Schleife wird oi anstatt wieder i verwendet
-    p: testet ob Zahl Primzahl ist
+    u: and
+    o: other, for accessing i-k variables after the third loop
+        in the 4. loop oi will be used, in the 7. ooi, ...
+    p: tests, if the following number is a prime number
         p2 -> True
         p6 -> False
-    r: raw, nochfolgende Zeichen werden an print übergeben, Funktionen wie p, m, q, etc. gehen nicht in der raw Anweisung
-        ra+","+b -> gibt Werte a b mit Komma getrennt aus
-        _print(str(a)+","+str(b)) -> wie ra+","+b
-    s: stoppt Schleife oder Verzweigung
-    t: beginnt boolschen Ausdruck
-        iftna=2 -> testet ob a nicht 2 ist
-    v: Variablenkonstanten oder Funktionen (vsina -> math.sin(a))
+    r: prints the following expresseion, functions like p, m, q, etc. doesn't work in r
+        ra+","+b -> prints the values a and b separated by a comma
+        _print(str(a)+","+str(b)) -> qual to ra+","+b
+    s: stopps the loop or structure, like '}' in some programming languages
+    t: starts a boolean term
+        iftna=2 -> tests if a isn't 2
+    v: variableconstants or math functions (vsina -> math.sin(a))
         v1 -> PI
         v2 -> e
         v3 -> random number
         v3,1,10 -> random number between 1 and 10
         v!(2+3) -> 120
-	vcos0 -> 1
-    x-z: Koordinaten und Funktionen (mathematisch)
-       z2*x+2*y x4*y x2 -> z = 20
-    +-*/%: Operationen
-        a%b -> Rest von a/c
-    &|<< >>: Binäre Operatoren
-        a&b: nur Bits die in a und b gesetzt sind werden übernommen
-        a<<1: Shift left, entspricht a*2
-    .: für Dezimalzahlen
+        vcos0 -> 1
+    x-z: coordinates and functions (mathematical)
+       z2*x+2*y y4*x x2 -> z = 20
+    +-*/%: operations
+        a%b -> modulo of a and b
+    &|: bit operator
+        a&b: only the bits contained in a and b
+        a|b: all bits in a or b|
+    .: for floats
     for: for Loop
         for2 -> for(int i = 0; i < 2; i++)
         for3,9 -> for(int i = 3; i < 9; i++)
-        -i im ersten Loop, j im zweiten, usw.
-    ift: if true Verzweigung, nur ift = else
-        iftna=2 -> testet ob a nicht 2 ist
-        ift -> a ist 2
-    def: erzeugt Funktion (a-h global, keine Parameter)
-        definca a+1 s -> _inca erhöht a um 1
-        definca a+1 a s -> _inca erhöht a um 1 und gibt a zurück
-    []: Array erzeugung
-        a[] -> a als Array deklariert
-        a+[b] -> b zu a hinzugefügt
-    _: Genutzt um Funktionen und Python code aufzurufen (Python Funktionen können genutzt werden)
-        _print("HW") -> gibt HW aus
-    Werte setzen:
-        ab -> b nach a kopiert
+        i in the first loop, j in the second, ...
+    ift: if expression after t exist, its used as 'if' statement; if it's only ift it's used as else
+        iftna=2 -> tests if a isn't 2
+        ift -> a is 2
+    def: creates a function (a-h are global, no parameter)
+        definca a+1 s -> _inca increases a by 1
+        definca a+1 a s -> _inca increases a by 1 and returns a
+    []: creates an array
+        a[] -> a is array
+        a+[b] -> add b to a (in the list)
+    _: used to call native Python code
+        _print("HW") -> prints HW
+
+    setting values:
+        ab -> a = b
         ab+c -> a = b+c
         a+b -> a = a+b
-        Nicht gespeicherte return Anweisungen, erzeugen eine Variable falls eine frei ist
-    Variable ohne Anweisung werden ausgegeben (default: a, falls nichts anderes Ausgegeben wurde)
-        b -> bei Programm ende wird b ausgegeben
+    if r isn't used, a is printed at the end
 
-    Bsp:
-    10. Fibonaccizahl:
+    Examples:
+    10. Fibonacci-number:
         1 1 for8 cb b+a ab s b
-    PI Annäherung:
+    PI approximation:
         1.0 1.0 v1 for1,100000 b+2 ifti%2=1 a-(1/b) s ift a+(1/b) s s a*4 a c
     Prime twins between 1 and 1000:
         zp(x+px*2) for3,1000 xi iftz ai+2 ri+","+a s s
