@@ -1,11 +1,14 @@
-import sys, os
+import sys
+import os
 import io
 import itertools
 import socket
 from datetime import datetime
 import urllib.parse as url_parser
 import _thread
-# Doc-Comments, ide errors checken
+
+
+# constants
 HELP = """    --: beendet Eingabe. Argumente nach --:
         c: führt Programm dann aus
         s <path>: speichert code unter path
@@ -36,20 +39,35 @@ def get_var_pos(search_str):  # for preprocessor
     if is_var(search_str[0]) or search_str[0].isdigit() or search_str[0] == '(':
         position = 0
         in_bracket = 0
-        for i in search_str:
-            if i == '(':
+        for pos in search_str:
+            if pos == '(':
                 in_bracket += 1
-            elif i == ')':
+            elif pos == ')':
                 if in_bracket == 0:
                     break
                 in_bracket -= 1
-            elif in_bracket <= 0 and not (i.isdigit() or is_var(i) or i in ['m', 'p', 'q', 'w', 'l', 'v']):
+            elif in_bracket <= 0 and not (pos.isdigit() or is_var(pos) or pos in ['m', 'p', 'q', 'w', 'l', 'v']):
                 break
             position += 1
         return position
     elif search_str[0] == 'v':  # constants doesn't need to be in brackets
         return 2
     return 0
+
+
+def replace_symbols(command):
+    """
+    Replaces symbols like n with not, etc.
+    :param command: the command to replace the symbols in
+    :return: the command with the replaced symbols
+    """
+    command = command.replace("!=", "#")
+    command = command.replace("==", "=")
+    command = command.replace("=", "==")
+    command = command.replace("#", "!=")
+    command = command.replace("n", "not ")
+    command = command.replace("u", " and ")
+    return command
 
 
 def to_py(commands):
@@ -79,7 +97,7 @@ def to_py(commands):
                         else:
                             tmp += commands[i][j]
                     commands[i] = tmp
-            # Squareroot
+            # square root
             if "q" in commands[i]:
                 while 'q' in commands[i]:
                     tmp = ""
@@ -136,7 +154,6 @@ def to_py(commands):
                             else:
                                 zs = commands[i][j + 1:j + 1 + pos]
                                 tmp += "math.log(" + zs + ")"
-                            # break
                         else:
                             tmp += commands[i][j]
                     commands[i] = tmp
@@ -158,30 +175,30 @@ def to_py(commands):
                     commands[i] = tmp
             # constant variables
             if "v" in commands[i]:
-                impvorher = imp
+                imp_before = imp
                 imp = True
                 commands[i] = commands[i].replace("v1", "math.pi")
                 commands[i] = commands[i].replace("v2", "math.e")
-                klammern = 0
+                bracket_count = 0
                 if "v" in commands[i]:
                     for j in range(len(commands[i])):
                         if commands[i][j] == 'v':
                             if commands[i][j + 1] == '3':
                                 imp_rand = True
-                                imp = impvorher
+                                imp = imp_before
                                 if len(commands[i]) > j + 2 and commands[i][j + 2] == ',':
                                     tmp = commands[i][:j] + "randint("
-                                    klammern = 0
+                                    bracket_count = 0
                                     for k in range(j + 3, len(commands[i])):
                                         tmp += commands[i][k]
-                                        if commands[i][k] == ',' and klammern <= 0:
+                                        if commands[i][k] == ',' and bracket_count <= 0:
                                             pos = get_var_pos(commands[i][k + 1:])
                                             tmp += commands[i][k + 1:k + 1 + pos] + ')' + commands[i][k + 1 + pos:]
                                             break
                                         elif commands[i][k] == '(':
-                                            klammern += 1
+                                            bracket_count += 1
                                         elif commands[i][k] == ')':
-                                            klammern -= 1
+                                            bracket_count -= 1
                                     commands[i] = tmp
                                 else:
                                     commands[i] = commands[i][:j] + "random()"
@@ -196,13 +213,13 @@ def to_py(commands):
                                     else:
                                         j += 1
                             else:
-                                klammern += 1
+                                bracket_count += 1
                                 if commands[i][j + 1] == 'a':
                                     commands[i] = commands[i][:j] + "math." + commands[i][j + 1:j + 5] + "(" + commands[i][j + 5:]
                                 else:
                                     commands[i] = commands[i][:j] + "math." + commands[i][j + 1:j + 4] + "(" + commands[i][j + 4:]
                             break
-                    commands[i] += ")" * klammern
+                    commands[i] += ")" * bracket_count
     if imp or imp_rand:
         append_top = "#imports:\nimport math\n" * imp + "#imports:\nfrom random import *\n" * imp_rand + "\n"
     else:
@@ -211,7 +228,7 @@ def to_py(commands):
         append_top += "# prim test function:\ndef prime_test(n):\n\tif (n%2 == 0 and n != 2) or n == 1:\n\t\treturn False\n\telif n==2:\n\t\treturn True\n\telse:\n\t\tfor i in range(3, (int)(n/2), 2):\n\t\t\tif n%i == 0:\n\t\t\t\treturn False\n\t\treturn True\n\n# autogenerated code:\n"
     else:
         append_top += "# autogenerated code:\n"
-    py_code = ""
+    py_code_builder = ""
     tabs = 0
     current_var = 'a'
     output = True
@@ -225,45 +242,40 @@ def to_py(commands):
     for command in commands:
         if len(command) > 0:
             if command[0] == '_':
-                py_code += "\t" * tabs + command[1:] + "\n"
+                py_code_builder += "\t" * tabs + command[1:] + "\n"
             elif command[0].isdigit() or command[0] in ['(', 'p', 'm', '['] or (len(command) > 5 and command[:4] == "rand"):
-                py_code += "\t" * tabs + current_var + " = " + command + "\n"
+                py_code_builder += "\t" * tabs + current_var + " = " + command + "\n"
                 if current_var != 'h':
                     current_var = chr(ord(current_var) + 1)
             elif command[:3] == "def" and func_tmp == "s":
-                func_tmp = py_code
-                py_code = ""
+                func_tmp = py_code_builder
+                py_code_builder = ""
                 func_name = command[3:]
                 tabs_tmp = tabs
                 tabs = 1
                 ai_tmp = current_iter
             elif command[:3] == "for":
                 if command[3] == 't':
-                    py_code += "\t" * tabs + "o" * (current_iter // 3) + chr(ord('i') + current_iter % 3) + " = 0\n"
-                    command = command.replace("!=", "#")
-                    command = command.replace("==", "=")
-                    command = command.replace("=", "==")
-                    command = command.replace("#", "!=")
-                    command = command.replace("n", "not ")
-                    command = command.replace("u", " and ")
-                    py_code += "\t" * tabs + "while (" + command[4:] + "):\n"
+                    py_code_builder += "\t" * tabs + "o" * (current_iter // 3) + chr(ord('i') + current_iter % 3) + " = 0\n"
+                    command = replace_symbols(command)
+                    py_code_builder += "\t" * tabs + "while (" + command[4:] + "):\n"
                 elif ',' in command:
-                    py_code += "\t" * tabs + "for " + "o" * (current_iter // 3) + chr(
+                    py_code_builder += "\t" * tabs + "for " + "o" * (current_iter // 3) + chr(
                         ord('i') + current_iter % 3) + " in range("
                     stelle = 4
                     for num in itertools.takewhile(lambda x: (x != ','), command[3:]):
-                        py_code += str(num)
+                        py_code_builder += str(num)
                         stelle += 1
-                    py_code += ", "
+                    py_code_builder += ", "
                     for num in itertools.takewhile(lambda x: x != ' ', command[stelle:]):
-                        py_code += str(num)
-                    py_code += "):\n"
+                        py_code_builder += str(num)
+                    py_code_builder += "):\n"
                 else:
-                    py_code += "\t" * tabs + "for " + "o" * (current_iter // 3) + chr(
+                    py_code_builder += "\t" * tabs + "for " + "o" * (current_iter // 3) + chr(
                         ord('i') + current_iter % 3) + " in range("
                     for num in itertools.takewhile(lambda x: x != ' ', command[3:]):
-                        py_code += str(num)
-                    py_code += "):\n"
+                        py_code_builder += str(num)
+                    py_code_builder += "):\n"
                 tabs += 1
                 current_iter += 1
             elif command[0] == 's':
@@ -277,68 +289,64 @@ def to_py(commands):
                     while c <= current_var:
                         append_top += "\tglobal " + c + "\n"
                         c = chr(ord(c) + 1)
-                    append_top += py_code + "\n"
+                    append_top += py_code_builder + "\n"
                     tabs = tabs_tmp
-                    py_code = func_tmp
+                    py_code_builder = func_tmp
                     current_iter = ai_tmp
                     func_tmp = "s"
                     tabs_tmp = 0
-            elif command == "ift" and l_if:  # entspricht else
-                py_code += "\t" * tabs + "else:\n"
+            elif command == "ift" and l_if:  # meaning else
+                py_code_builder += "\t" * tabs + "else:\n"
                 tabs += 1
             elif command[:3] == "ift":
-                py_code += "\t" * tabs + "if "
-                command = command.replace("!=", "#")
-                command = command.replace("==", "=")
-                command = command.replace("=", "==")
-                command = command.replace("#", "!=")
-                command = command.replace("n", "not ")
-                command = command.replace("u", " and ")
-                py_code += command[3:] + ":\n"
+                py_code_builder += "\t" * tabs + "if "
+                command = replace_symbols(command)
+                py_code_builder += command[3:] + ":\n"
                 tabs += 1
                 l_if = True
             else:
                 if is_var(command[0]) and len(command) == 1:
                     if func_tmp == "s":
-                        py_code += "\t" * tabs + "print(" + command + ")\n"
+                        py_code_builder += "\t" * tabs + "print(" + command + ")\n"
                         output = False
                     else:
-                        py_code += "\t" * tabs + "return " + command
+                        py_code_builder += "\t" * tabs + "return " + command
                 elif command[0] == 'r':
-                    py_code += "\t" * tabs + "print("
+                    py_code_builder += "\t" * tabs + "print("
                     tmp = command[1:].split("+")
                     for c in range(len(tmp)):
                         if len(tmp[c]) == 1:
                             tmp[c] = "str(" + tmp[c] + ")"
-                    py_code += "+".join(tmp) + ")\n"
+                    py_code_builder += "+".join(tmp) + ")\n"
                     output = False
                 else:
                     if command[0] == 'x' or command[0] == 'y' or command[0] == 'z':
                         xyz[command[0]] = command[1:]
                     else:
                         if is_var(command[0]) and command[1] not in ['+', '-', '*', '/', '%']:
-                            py_code += "\t" * tabs + command[0] + " = " + command[1:] + "\n"
+                            py_code_builder += "\t" * tabs + command[0] + " = " + command[1:] + "\n"
                         else:
-                            py_code += "\t" * tabs + command[0] + " = " + command + "\n"
+                            py_code_builder += "\t" * tabs + command[0] + " = " + command + "\n"
                         if ord(current_var) <= ord(command[0]) < ord("h"):
                             current_var = chr(ord(command[0]) + 1)
-            py_code = py_code.replace("z", "(" + xyz['z'] + ")")
-            py_code = py_code.replace("y", "(" + xyz['y'] + ")")
-            py_code = py_code.replace("x", "(" + xyz['x'] + ")")
+            py_code_builder = py_code_builder.replace("z", "(" + xyz['z'] + ")")
+            py_code_builder = py_code_builder.replace("y", "(" + xyz['y'] + ")")
+            py_code_builder = py_code_builder.replace("x", "(" + xyz['x'] + ")")
     if output:
-        py_code += "print(a)\n"
-    for i in range(ord(current_var) - ord('a') + 1):
-        append_top += chr(ord('a') + i) + " = 0\n"
-    return append_top + py_code
+        py_code_builder += "print(a)\n"
+    # pre initialize the (maybe) needed variables
+    for variable_index in range(ord(current_var) - ord('a') + 1):
+        append_top += chr(ord('a') + variable_index) + " = 0\n"
+    return append_top + py_code_builder
 
 
-def process_request(conn, client, content):
+def process_request(conn, client, html_content):
     """
     Processes a http request. Therefor it receives, formats and processes the data
     and sends bag the result.
     :param conn: the connection to the client
-    :param client: the adress of the client
-    :param content: the content of the index.html file
+    :param client: the address of the client
+    :param html_content: the content of the index.html file
     """
     # receive and check data
     data = conn.recv(4096)
@@ -359,48 +367,47 @@ def process_request(conn, client, content):
         print("\tInfo: " + header_infos[0], header_infos[-1])
 
     header_infos[1] = header_infos[1][1:]  # remove / at the beginning of request
-    # redirect print calls
-    prog_log = io.StringIO()
+    alt_stdout = io.StringIO()  # alternative stdout
     try:
-        content = content.replace(REPLACE_CODES["request"], "\n".join(header_infos[1:-1]))
+        html_content = html_content.replace(REPLACE_CODES["request"], "\n".join(header_infos[1:-1]))
         if len(header_infos) == 3 and header_infos[1] == "":
-            content = content.replace(REPLACE_CODES["result"], "default")
+            html_content = html_content.replace(REPLACE_CODES["result"], "default")
         else:
             # create code
-            py_code = to_py(header_infos[1:-1])
+            created_py_code = to_py(header_infos[1:-1])
             # execute code
-            exec(py_code, {'print': lambda s: prog_log.write(str(s) + "\n")})
-            content = content.replace(REPLACE_CODES["result"], "succeeded")
+            exec(created_py_code, {'print': lambda s: alt_stdout.write(str(s) + "\n")})
+            html_content = html_content.replace(REPLACE_CODES["result"], "succeeded")
     except Exception as e:
-        prog_log.write(str(e) + "\n")  # prints to redirected stdout
-        content = content.replace(REPLACE_CODES["result"], "failed")
-    result = prog_log.getvalue()
-    prog_log.close()
-    conn.send(content.replace(REPLACE_CODES["output"], result.replace("\n", "<br>")).encode())
+        alt_stdout.write(str(e) + "\n")  # prints to redirected stdout
+        html_content = html_content.replace(REPLACE_CODES["result"], "failed")
+    result = alt_stdout.getvalue()
+    alt_stdout.close()
+    conn.send(html_content.replace(REPLACE_CODES["output"], result.replace("\n", "<br>")).encode())
     conn.close()
 
 
-def run_server(server, content):
+def run_server(tcp_server, html_content):
     """
     Receive the requests and process it in a new thread.
-    :param server: the server to host
-    :param content: the content of the index.html file, used to create the website
+    :param tcp_server: the server to host
+    :param html_content: the content of the index.html file, used to create the website
     """
     while True:
-        _thread.start_new_thread(process_request, (*server.accept(), content))
+        _thread.start_new_thread(process_request, (*tcp_server.accept(), html_content))
 
 
 def get_ip_address():
     """
     Gets the local, currently used ip-address,
-    by sending a request to a server while getting the socketname.
+    by sending a request to a server while getting the name of the socket.
     :return: the ip-address
     """
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.connect(("8.8.8.8", 80))
-    ip_adr = udp_socket.getsockname()[0]
+    sock_name = udp_socket.getsockname()[0]  # equals the ip address
     udp_socket.close()
-    return ip_adr
+    return sock_name
 
 
 # Check for terminal arguments and start the requested service
@@ -450,9 +457,7 @@ elif len(sys.argv) > 1:
                 print("Server started:\n\thostname:", socket.gethostname(), "\n\tip:", ip_adr, "\n\ttime:", datetime.now())
                 input("Press Enter to stop.\n")
             except FileNotFoundError:
-                print("Error, index.html not found.")
-            except Exception:
-                print("An unknown exception occurred.")
+                print("Error, index.html or help.txt not found.")
         else:  # -h or wrong argument
             file = open(HELP_FILE, **HELP_FILE_ARG)
             content = file.read()
@@ -466,19 +471,19 @@ elif len(sys.argv) > 1:
         arr = content.replace("\n", " ").split(" ")
         # write python:
         path = ""
-        l = len(sys.argv[1]) - 1
-        for i in range(l):
-            if sys.argv[1][l - i] == '.':
-                path = sys.argv[1][:l - i] + ".py"
+        argc = len(sys.argv[1]) - 1
+        for arg_pos in range(argc):
+            if sys.argv[1][argc - arg_pos] == '.':
+                path = sys.argv[1][:argc - arg_pos] + ".py"
                 break
         file = open(path, "w")
         file.write(to_py(arr))
         file.close()
 else:  # live console
     inp = input()
-    commands = ""
+    commands_builder = ""
     while inp[:2] != "--":
-        commands += " " + inp
+        commands_builder += " " + inp
         inp = input()
     arr = inp[2:].split(" ")
     comp = False
@@ -497,7 +502,7 @@ else:  # live console
     else:
         if path != "":
             # to python:
-            py_code = to_py(commands.split(" "))
+            py_code = to_py(commands_builder.split(" "))
             if len(path) > 3:
                 if path[len(path) - 3:] != ".py":
                     path += ".py"
@@ -510,5 +515,5 @@ else:  # live console
             if comp:
                 exec(py_code)
         elif comp:
-            py_code = to_py(commands.split(" "))
+            py_code = to_py(commands_builder.split(" "))
             exec(py_code)
